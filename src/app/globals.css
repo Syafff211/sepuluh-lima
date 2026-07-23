@@ -31,6 +31,43 @@
   --font-display: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Light Theme */
+[data-theme="light"] {
+  --color-background: #fafafa;
+  --color-foreground: #0a0a0f;
+  --color-card: rgba(255, 255, 255, 0.9);
+  --color-card-foreground: #0a0a0f;
+  --color-popover: rgba(255, 255, 255, 0.95);
+  --color-popover-foreground: #0a0a0f;
+  --color-secondary: rgba(0, 0, 0, 0.05);
+  --color-secondary-foreground: #0a0a0f;
+  --color-muted: rgba(0, 0, 0, 0.05);
+  --color-muted-foreground: #71717a;
+  --color-accent: rgba(0, 0, 0, 0.08);
+  --color-accent-foreground: #0a0a0f;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-input: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 * {
   border-color: var(--color-border);
 }
