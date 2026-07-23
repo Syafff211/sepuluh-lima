@@ -1,9 +1,23 @@
 'use client';
 
-import { GraduationCap, Github, Instagram, Facebook } from 'lucide-react';
+import { GraduationCap, Github, Instagram, Facebook, Youtube } from 'lucide-react';
 import Link from 'next/link';
+import { useLandingContent } from '@/hooks/useLandingContent';
 
 export function LandingFooter() {
+  const { getContent, getSetting } = useLandingContent();
+
+  const footerText = getContent('footer', 'copyright', '© 2024 X-5 SMAN 1 Purbalingga. All rights reserved.');
+  const footerTagline = getSetting('footer_text', 'Made with ❤️ by Kelas X-5');
+  const siteName = getSetting('site_name', 'X-5 SMAN 1 Purbalingga');
+
+  const socialLinks = [
+    { icon: Instagram, url: getContent('social', 'instagram', '#'), label: 'Instagram' },
+    { icon: Facebook, url: getContent('social', 'facebook', '#'), label: 'Facebook' },
+    { icon: Youtube, url: getContent('social', 'youtube', '#'), label: 'YouTube' },
+    { icon: Github, url: getContent('social', 'github', '#'), label: 'GitHub' },
+  ];
+
   return (
     <footer className="border-t border-white/10 py-12">
       <div className="container mx-auto px-6">
@@ -14,7 +28,7 @@ export function LandingFooter() {
                 <GraduationCap className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-white">X-5 SMAN 1 Purbalingga</h3>
+                <h3 className="font-bold text-white">{siteName}</h3>
                 <p className="text-xs text-muted-foreground">Premium Digital Classroom</p>
               </div>
             </div>
@@ -27,7 +41,7 @@ export function LandingFooter() {
           <div>
             <h4 className="font-semibold text-white mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              {['About', 'Gallery', 'Students', 'Contact'].map((link) => (
+              {['Home', 'About', 'Gallery', 'Contact'].map((link) => (
                 <li key={link}>
                   <Link
                     href={`#${link.toLowerCase()}`}
@@ -43,13 +57,16 @@ export function LandingFooter() {
           <div>
             <h4 className="font-semibold text-white mb-4">Social Media</h4>
             <div className="flex gap-3">
-              {[Github, Instagram, Facebook].map((Icon, i) => (
+              {socialLinks.map((social, i) => (
                 <a
                   key={i}
-                  href="#"
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="h-10 w-10 rounded-xl glass flex items-center justify-center hover:bg-white/10 transition-colors"
+                  title={social.label}
                 >
-                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <social.icon className="h-5 w-5 text-muted-foreground" />
                 </a>
               ))}
             </div>
@@ -57,11 +74,11 @@ export function LandingFooter() {
         </div>
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © 2024 X-5 SMAN 1 Purbalingga. All rights reserved.
+          <p className="text-sm text-muted-foreground footer-text">
+            {footerText}
           </p>
           <p className="text-sm text-muted-foreground">
-            Made with ❤️ by Kelas X-5
+            {footerTagline}
           </p>
         </div>
       </div>
