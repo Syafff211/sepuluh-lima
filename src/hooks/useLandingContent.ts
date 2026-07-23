@@ -59,35 +59,43 @@ export function useLandingContent() {
     fetchContent();
 
     // Subscribe to real-time changes
-    const channel = supabase
-      .channel('landing_content_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'landing_content',
-        },
-        () => {
-          fetchContent();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'website_settings',
-        },
-        () => {
-          fetchContent();
-        }
-      )
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel('landing_content_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'landing_content',
+          },
+          () => {
+            fetchContent();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'website_settings',
+          },
+          () => {
+            fetchContent();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        try {
+          supabase.removeChannel(channel);
+        } catch (err) {
+          console.error('Error removing channel:', err);
+        }
+      };
+    } catch (err) {
+      console.error('Error setting up realtime subscription:', err);
+    }
   }, [fetchContent]);
 
   const getContent = (section: string, key: string, defaultValue = '') => {
