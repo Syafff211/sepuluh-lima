@@ -3,8 +3,23 @@
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Globe } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLandingContent } from '@/hooks/useLandingContent';
 
 export function ContactSection() {
+  const { getContent } = useLandingContent();
+
+  const address = getContent('contact', 'address', 'Jl. Raya Purbalingga, Jawa Tengah');
+  const phone = getContent('contact', 'phone', '(0281) 123456');
+  const email = getContent('contact', 'email', 'x5@sman1purbalingga.sch.id');
+  const website = getContent('contact', 'website', 'www.sman1purbalingga.sch.id');
+
+  const contacts = [
+    { icon: MapPin, title: 'Alamat', value: address, className: 'contact-address' },
+    { icon: Phone, title: 'Telepon', value: phone, className: 'contact-phone' },
+    { icon: Mail, title: 'Email', value: email, className: 'contact-email' },
+    { icon: Globe, title: 'Website', value: website, className: 'contact-website' },
+  ];
+
   return (
     <section id="contact" className="py-32 relative">
       <div className="container mx-auto px-6">
@@ -23,12 +38,7 @@ export function ContactSection() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {[
-            { icon: MapPin, title: 'Alamat', value: 'Jl. Raya Purbalingga, Jawa Tengah' },
-            { icon: Phone, title: 'Telepon', value: '(0281) 123456' },
-            { icon: Mail, title: 'Email', value: 'x5@sman1purbalingga.sch.id' },
-            { icon: Globe, title: 'Website', value: 'www.sman1purbalingga.sch.id' },
-          ].map((item, i) => (
+          {contacts.map((item, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 30 }}
@@ -42,7 +52,7 @@ export function ContactSection() {
                     <item.icon className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.value}</p>
+                  <p className={`text-sm text-muted-foreground ${item.className}`}>{item.value}</p>
                 </CardContent>
               </Card>
             </motion.div>
