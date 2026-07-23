@@ -16,7 +16,7 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
-  const [formData, setFormData] = useState({ full_name: '', email: '', nisn: '', phone: '', address: '', parent_name: '', class_position: '' });
+  const [formData, setFormData] = useState({ full_name: '', email: '', password: '', nisn: '', phone: '', address: '', parent_name: '', class_position: '' });
 
   const filtered = students.filter(s =>
     s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,7 +26,7 @@ export default function AdminStudentsPage() {
 
   const openAdd = () => {
     setEditingStudent(null);
-    setFormData({ full_name: '', email: '', nisn: '', phone: '', address: '', parent_name: '', class_position: '' });
+    setFormData({ full_name: '', email: '', password: '', nisn: '', phone: '', address: '', parent_name: '', class_position: '' });
     setShowModal(true);
   };
 
@@ -49,12 +49,62 @@ export default function AdminStudentsPage() {
       toast.error('Nama dan email wajib diisi!');
       return;
     }
-    if (editingStudent) {
-      await updateStudent(editingStudent.id, formData);
-    } else {
-      await addStudent(formData);
+
+    // Validasi password untuk student baru
+    if (!editingStudent && !formData.password) {
+      toast.error('Password wajib diisi untuk student baru!');
+      return;
     }
-    setShowModal(false);
+
+    if (!editingStudent && formData.password && formData.password.length < 6) {
+      toast.error('Password minimal 6 karakter!');
+      return;
+    }
+
+    if (editingStudent) {
+      // Edit existing student
+      await updateStudent(editingStudent.id, {
+        full_name: formData.full_name,
+        email: formData.email,
+        nisn: formData.nisn,
+        phone: formData.phone,
+        address: formData.address,
+        parent_name: formData.parent_name,
+        class_position: formData.class_position,
+      });
+    } else {
+      // Create new student via API
+      try {
+        const response = await fetch('/api/admin/create-student', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            nisn: formData.nisn,
+            phone: formData.phone,
+            address: formData.address,
+            parent_name: formData.parent_name,
+            class_position: formData.class_position,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Gagal membuat student');
+        }
+
+        toast.success('Student berhasil ditambahkan!');
+        setShowModal(false);
+        refetch();
+      } catch (error: any) {
+        toast.error(error.message || 'Gagal membuat student');
+      }
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -160,6 +210,27 @@ export default function AdminStudentsPage() {
                     <Label>Email *</Label>
                     <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="email@example.com" />
                   </div>
+                  {!editingStudent && (
+                    <div className="space-y-2">
+                      <Label>Password *</Label>
+                      <Input 
+                        type="password" 
+                        value={formData.password} 
+                        onChange={e => setFormData({...formData, password: e.target.value})} 
+                        placeholder="Minimal 6 karakter" 
+                      />
+                      <p className="text-xs text-muted-foreground">Password untuk login student</p>
+                    </div>
+                  )}
+                  {editingStudent && (
+                    <div className="space-y-2 col-span-2">
+                      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                        <p className="text-sm text-blue-400">
+                          💡 Untuk mengubah password, student harus melakukannya sendiri melalui halaman profile mereka.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>NISN</Label>
                     <Input value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="1234567890" />
