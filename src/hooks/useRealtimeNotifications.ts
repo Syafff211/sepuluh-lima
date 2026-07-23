@@ -52,63 +52,71 @@ export function useRealtimeNotifications() {
     fetchNotifications();
 
     // Subscribe to real-time notifications
-    const channel = supabase
-      .channel('notifications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          if (!newNotification.is_read) {
-            setUnreadCount(prev => prev + 1);
+    try {
+      const channel = supabase
+        .channel('notifications_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev]);
+            if (!newNotification.is_read) {
+              setUnreadCount(prev => prev + 1);
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: 'user_id=is.null', // Broadcast notifications
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          if (!newNotification.is_read) {
-            setUnreadCount(prev => prev + 1);
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: 'user_id=is.null', // Broadcast notifications
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev]);
+            if (!newNotification.is_read) {
+              setUnreadCount(prev => prev + 1);
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const updatedNotification = payload.new as Notification;
-          setNotifications(prev =>
-            prev.map(n =>
-              n.id === updatedNotification.id ? updatedNotification : n
-            )
-          );
-          fetchNotifications(); // Refresh to update unread count
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const updatedNotification = payload.new as Notification;
+            setNotifications(prev =>
+              prev.map(n =>
+                n.id === updatedNotification.id ? updatedNotification : n
+              )
+            );
+            fetchNotifications(); // Refresh to update unread count
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        try {
+          supabase.removeChannel(channel);
+        } catch (err) {
+          console.error('Error removing notification channel:', err);
+        }
+      };
+    } catch (err) {
+      console.error('Error setting up notification subscription:', err);
+    }
   }, [user, fetchNotifications]);
 
   const markAsRead = async (id: string) => {
