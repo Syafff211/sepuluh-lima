@@ -75,6 +75,12 @@ export default function AdminStudentsPage() {
     } else {
       // Create new student via API
       try {
+        console.log('Creating student with data:', {
+          email: formData.email,
+          full_name: formData.full_name,
+          hasPassword: !!formData.password,
+        });
+
         const response = await fetch('/api/admin/create-student', {
           method: 'POST',
           headers: {
@@ -84,25 +90,40 @@ export default function AdminStudentsPage() {
             email: formData.email,
             password: formData.password,
             full_name: formData.full_name,
-            nisn: formData.nisn,
-            phone: formData.phone,
-            address: formData.address,
-            parent_name: formData.parent_name,
-            class_position: formData.class_position,
+            nisn: formData.nisn || null,
+            phone: formData.phone || null,
+            address: formData.address || null,
+            parent_name: formData.parent_name || null,
+            class_position: formData.class_position || null,
           }),
         });
 
-        const result = await response.json();
+        console.log('Response status:', response.status);
+
+        let result;
+        try {
+          result = await response.json();
+          console.log('Response data:', result);
+        } catch (e) {
+          console.error('Failed to parse response:', e);
+          throw new Error('Server returned invalid response');
+        }
 
         if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        if (!result.success) {
           throw new Error(result.error || 'Gagal membuat student');
         }
 
-        toast.success('Student berhasil ditambahkan!');
+        toast.success(`Student ${result.data.full_name} berhasil ditambahkan!`);
         setShowModal(false);
+        setFormData({ full_name: '', email: '', password: '', nisn: '', phone: '', address: '', parent_name: '', class_position: '' });
         refetch();
       } catch (error: any) {
-        toast.error(error.message || 'Gagal membuat student');
+        console.error('Create student error:', error);
+        toast.error(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
       }
     }
   };
