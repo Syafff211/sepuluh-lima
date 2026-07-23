@@ -7,18 +7,21 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!serviceRoleKey,
+      keyLength: serviceRoleKey?.length || 0,
+    });
+
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing environment variables:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!serviceRoleKey
-      });
+      console.error('Missing environment variables');
       return NextResponse.json(
         { error: 'Server configuration error. Please contact administrator.' },
         { status: 500 }
       );
     }
 
-    // Admin client dengan service_role key (bisa create users)
+    // Admin client dengan service_role key
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -57,32 +60,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Create user di auth.users
-    console.log('Creating auth user...');
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        full_name,
-        role: 'student',
-      },
-    });
-
-    if (authError) {
-      console.error('Auth error:', authError);
+    // Step 1: Check if user already exists
+    console.log('Checking if user exists...');
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
+    
+    if (existingUser) {
+      console.log('User already exists:', email);
       return NextResponse.json(
-        { error: `Gagal membuat akun: ${authError.message}` },
+        { error: `Email ${email} sudah terdaftar. Gunakan email lain.` },
         { status: 400 }
       );
     }
 
-    console.log('Auth user created:', authUser.user.id);
+    // Step 2: Create user dengan sign up (lebih reliable daripada admin.createUser)
+    console.log('Creating user with sign up...');
+    const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name,
+          role: 'student',
+        },
+        emailRedirectTo: undefined, // Don't send confirmation email
+      },
+    });
 
-    // Step 2: Wait a bit for trigger to create profile
-    await new Promise(resolve => setTimeout(resolve, 500));
+    if (signUpError) {
+      console.error('Sign up error:', signUpError);
+      return NextResponse.json(
+        { error: `Gagal membuat akun: ${signUpError.message}` },
+        { status: 400 }
+      );
+    }
 
-    // Step 3: Update profile dengan data lengkap
+    if (!signUpData.user) {
+      console.error('No user returned from sign up');
+      return NextResponse.json(
+        { error: 'Gagal membuat akun: No user data returned' },
+        { status: 500 }
+      );
+    }
+
+    console.log('User created:', signUpData.user.id);
+
+    // Step 3: Manually confirm email (karena kita pakai service role)
+    console.log('Confirming email...');
+    const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(
+      signUpData.user.id,
+      { email_confirm: true }
+    );
+
+    if (confirmError) {
+      console.error('Confirm email error:', confirmError);
+      // Continue anyway, user can still login
+    }
+
+    // Step 4: Wait a bit for trigger to create profile
+    console.log('Waiting for profile creation...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Step 5: Update profile dengan data lengkap
     console.log('Updating profile...');
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -92,19 +131,18 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         address: address || null,
         parent_name: parent_name || null,
+        class_position: class_position || null,
         role: 'student',
       })
-      .eq('user_id', authUser.user.id)
+      .eq('user_id', signUpData.user.id)
       .select()
       .single();
 
     if (profileError) {
       console.error('Profile error:', profileError);
-      // Rollback: delete auth user jika profile gagal
-      console.log('Rolling back: deleting auth user...');
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+      // Don't rollback, user already created
       return NextResponse.json(
-        { error: `Gagal membuat profile: ${profileError.message}` },
+        { error: `Akun berhasil dibuat, tapi gagal update profile: ${profileError.message}` },
         { status: 500 }
       );
     }
@@ -116,12 +154,13 @@ export async function POST(request: NextRequest) {
       message: 'Siswa berhasil ditambahkan',
       data: {
         id: profile.id,
-        email: authUser.user.email,
+        email: signUpData.user.email,
         full_name: profile.full_name,
       },
     });
   } catch (error: any) {
     console.error('Create student error:', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
