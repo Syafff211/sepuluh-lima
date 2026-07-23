@@ -3,25 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log('Environment check:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!serviceRoleKey,
-      keyLength: serviceRoleKey?.length || 0,
-    });
-
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing environment variables');
+      console.error('Missing env vars:', { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey });
       return NextResponse.json(
-        { error: 'Server configuration error. Please contact administrator.' },
+        { error: 'Server configuration error. Hubungi administrator.' },
         { status: 500 }
       );
     }
 
-    // Admin client dengan service_role key
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -29,21 +21,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Parse request body
     let body;
     try {
       body = await request.json();
     } catch (e) {
-      console.error('Failed to parse request body:', e);
-      return NextResponse.json(
-        { error: 'Invalid request body' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
     const { email, password, full_name, nisn, phone, address, parent_name, class_position } = body;
 
-    console.log('Creating student:', { email, full_name, hasPassword: !!password });
+    console.log('📝 Creating student:', { email, full_name });
 
     // Validasi
     if (!email || !password || !full_name) {
@@ -54,27 +41,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password minimal 6 karakter' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 });
     }
 
-    // Step 1: Check if user already exists
-    console.log('Checking if user exists...');
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email === email);
-    
-    if (existingUser) {
-      console.log('User already exists:', email);
+    // Check if email already exists
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingProfile) {
       return NextResponse.json(
         { error: `Email ${email} sudah terdaftar. Gunakan email lain.` },
         { status: 400 }
       );
     }
 
-    // Step 2: Create user dengan sign up (lebih reliable daripada admin.createUser)
-    console.log('Creating user with sign up...');
+    // Create user with auth.signUp
+    console.log('🔐 Creating auth user...');
     const { data: signUpData, error: signUpError } = await supabaseAdmin.auth.signUp({
       email,
       password,
@@ -83,12 +68,11 @@ export async function POST(request: NextRequest) {
           full_name,
           role: 'student',
         },
-        emailRedirectTo: undefined, // Don't send confirmation email
       },
     });
 
     if (signUpError) {
-      console.error('Sign up error:', signUpError);
+      console.error('❌ Sign up error:', signUpError);
       return NextResponse.json(
         { error: `Gagal membuat akun: ${signUpError.message}` },
         { status: 400 }
@@ -96,34 +80,81 @@ export async function POST(request: NextRequest) {
     }
 
     if (!signUpData.user) {
-      console.error('No user returned from sign up');
+      console.error('❌ No user returned');
       return NextResponse.json(
-        { error: 'Gagal membuat akun: No user data returned' },
+        { error: 'Gagal membuat akun: No user data' },
         { status: 500 }
       );
     }
 
-    console.log('User created:', signUpData.user.id);
+    console.log('✅ Auth user created:', signUpData.user.id);
 
-    // Step 3: Manually confirm email (karena kita pakai service role)
-    console.log('Confirming email...');
+    // Confirm email
+    console.log('📧 Confirming email...');
     const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(
       signUpData.user.id,
       { email_confirm: true }
     );
 
     if (confirmError) {
-      console.error('Confirm email error:', confirmError);
-      // Continue anyway, user can still login
+      console.warn('⚠️ Email confirm warning:', confirmError.message);
     }
 
-    // Step 4: Wait a bit for trigger to create profile
-    console.log('Waiting for profile creation...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for profile trigger
+    console.log('⏳ Waiting for profile creation...');
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Step 5: Update profile dengan data lengkap
-    console.log('Updating profile...');
+    // Check if profile was created by trigger
     const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('user_id', signUpData.user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      console.log('⚠️ Profile not created by trigger, creating manually...');
+      
+      // Create profile manually
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          user_id: signUpData.user.id,
+          email,
+          full_name,
+          nisn: nisn || null,
+          phone: phone || null,
+          address: address || null,
+          parent_name: parent_name || null,
+          class_position: class_position || null,
+          role: 'student',
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Manual profile creation error:', createError);
+        return NextResponse.json(
+          { error: `Akun dibuat tapi gagal buat profile: ${createError.message}` },
+          { status: 500 }
+        );
+      }
+
+      console.log('✅ Profile created manually:', newProfile.id);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Siswa berhasil ditambahkan',
+        data: {
+          id: newProfile.id,
+          email,
+          full_name: newProfile.full_name,
+        },
+      });
+    }
+
+    // Update profile with complete data
+    console.log('📝 Updating profile...');
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
         full_name,
@@ -138,29 +169,28 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (profileError) {
-      console.error('Profile error:', profileError);
-      // Don't rollback, user already created
+    if (updateError) {
+      console.error('❌ Profile update error:', updateError);
       return NextResponse.json(
-        { error: `Akun berhasil dibuat, tapi gagal update profile: ${profileError.message}` },
+        { error: `Akun dibuat tapi gagal update profile: ${updateError.message}` },
         { status: 500 }
       );
     }
 
-    console.log('Profile updated successfully:', profile.id);
+    console.log('✅ Profile updated:', updatedProfile.id);
 
     return NextResponse.json({
       success: true,
       message: 'Siswa berhasil ditambahkan',
       data: {
-        id: profile.id,
-        email: signUpData.user.email,
-        full_name: profile.full_name,
+        id: updatedProfile.id,
+        email,
+        full_name: updatedProfile.full_name,
       },
     });
   } catch (error: any) {
-    console.error('Create student error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('❌ Create student error:', error);
+    console.error('Stack:', error.stack);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
