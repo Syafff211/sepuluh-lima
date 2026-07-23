@@ -3,8 +3,17 @@
 import { motion } from 'framer-motion';
 import { Heart, Target, Eye, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLandingContent } from '@/hooks/useLandingContent';
 
 export function AboutSection() {
+  const { getContent } = useLandingContent();
+
+  const vision = getContent('about', 'vision', 'Menjadi kelas yang unggul dalam prestasi akademik dan non-akademik, berkarakter mulia, serta mampu bersaing di era global dengan memanfaatkan teknologi digital secara bijak dan bertanggung jawab.');
+  const missionText = getContent('about', 'mission', 'Menciptakan lingkungan belajar yang kondusif dan menyenangkan|Mendorong semangat kompetisi positif antar siswa|Mengembangkan kreativitas dan bakat di berbagai bidang|Membangun solidaritas dan kebersamaan antar anggota kelas');
+  const motto = getContent('about', 'motto', 'Bersama Kita Bisa, Bersama Kita Juara!');
+  
+  const missionList = missionText.split('|').filter(m => m.trim());
+
   return (
     <section id="about" className="py-32 relative">
       <div className="container mx-auto px-6">
@@ -39,10 +48,8 @@ export function AboutSection() {
                 <CardTitle className="text-2xl">Visi</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Menjadi kelas yang unggul dalam prestasi akademik dan non-akademik,
-                  berkarakter mulia, serta mampu bersaing di era global dengan
-                  memanfaatkan teknologi digital secara bijak dan bertanggung jawab.
+                <p className="text-muted-foreground leading-relaxed vision-text">
+                  {vision}
                 </p>
               </CardContent>
             </Card>
@@ -63,23 +70,13 @@ export function AboutSection() {
                 <CardTitle className="text-2xl">Misi</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-3 text-muted-foreground">
-                  <li className="flex gap-2">
-                    <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>Menciptakan lingkungan belajar yang kondusif dan menyenangkan</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>Mendorong semangat kompetisi positif antar siswa</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>Mengembangkan kreativitas dan bakat di berbagai bidang</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span>Membangun solidaritas dan kebersamaan antar anggota kelas</span>
-                  </li>
+                <ul className="space-y-3 text-muted-foreground mission-text">
+                  {missionList.map((item, i) => (
+                    <li key={i} className="flex gap-2">
+                      <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>
@@ -101,8 +98,8 @@ export function AboutSection() {
                 <CardTitle className="text-2xl">Motto Kelas</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl md:text-3xl font-bold text-gradient italic">
-                  "Bersama Kita Bisa, Bersama Kita Juara!"
+                <p className="text-2xl md:text-3xl font-bold text-gradient italic motto-text">
+                  "{motto}"
                 </p>
                 <p className="text-muted-foreground mt-4">
                   Satu kelas, satu keluarga, satu tujuan - menjadi yang terbaik.
