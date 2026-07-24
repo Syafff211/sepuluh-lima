@@ -8,16 +8,21 @@ import {
   TrendingUp,
   Bell,
   Clock,
+  MessageSquare,
+  Users,
+  Award,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store';
+import Link from 'next/link';
 
 const stats = [
-  { icon: CheckCircle, label: 'Kehadiran', value: '95%', color: 'text-success', bg: 'bg-success/20' },
-  { icon: BookOpen, label: 'Tugas Aktif', value: '3', color: 'text-primary', bg: 'bg-primary/20' },
-  { icon: TrendingUp, label: 'Rata-rata Nilai', value: '87.5', color: 'text-info', bg: 'bg-info/20' },
-  { icon: Calendar, label: 'Kegiatan Bulan Ini', value: '5', color: 'text-warning', bg: 'bg-warning/20' },
+  { icon: CheckCircle, label: 'Kehadiran', value: '95%', color: 'text-success', bg: 'bg-success/20', href: '/dashboard/attendance' },
+  { icon: BookOpen, label: 'Tugas Aktif', value: '3', color: 'text-primary', bg: 'bg-primary/20', href: '/dashboard/assignments' },
+  { icon: TrendingUp, label: 'Rata-rata Nilai', value: '87.5', color: 'text-info', bg: 'bg-info/20', href: '/dashboard/grades' },
+  { icon: Award, label: 'Achievements', value: '5', color: 'text-warning', bg: 'bg-warning/20', href: '/dashboard/achievements' },
 ];
 
 const todaySchedule = [
@@ -28,36 +33,46 @@ const todaySchedule = [
 ];
 
 const recentAnnouncements = [
-  { title: 'Ujian Tengah Semester', date: '15-20 Oktober 2024', pinned: true },
-  { title: 'Class Meeting', date: '25 Oktober 2024', pinned: false },
-  { title: 'Study Tour', date: 'November 2024', pinned: false },
+  { title: 'Ujian Tengah Semester', date: '15-20 Oktober 2024', pinned: true, href: '/dashboard/announcements' },
+  { title: 'Class Meeting', date: '25 Oktober 2024', pinned: false, href: '/dashboard/announcements' },
+  { title: 'Study Tour', date: 'November 2024', pinned: false, href: '/dashboard/announcements' },
 ];
 
 const upcomingAssignments = [
-  { title: 'Essay Bahasa Indonesia', due: '3 hari lagi', subject: 'B. Indonesia' },
-  { title: 'Soal Matematika Bab 5', due: '5 hari lagi', subject: 'Matematika' },
-  { title: 'Laporan Praktikum Fisika', due: '1 minggu lagi', subject: 'Fisika' },
+  { title: 'Essay Bahasa Indonesia', due: '3 hari lagi', subject: 'B. Indonesia', href: '/dashboard/assignments' },
+  { title: 'Soal Matematika Bab 5', due: '5 hari lagi', subject: 'Matematika', href: '/dashboard/assignments' },
+  { title: 'Laporan Praktikum Fisika', due: '1 minggu lagi', subject: 'Fisika', href: '/dashboard/assignments' },
 ];
 
-export default function DashboardPage() {
+const quickActions = [
+  { icon: MessageSquare, label: 'Chat Teman', href: '/dashboard/chats', color: 'text-primary', bg: 'bg-primary/20' },
+  { icon: Users, label: 'Lihat Teman', href: '/dashboard/friends', color: 'text-info', bg: 'bg-info/20' },
+  { icon: Calendar, label: 'Jadwal', href: '/dashboard/schedule', color: 'text-success', bg: 'bg-success/20' },
+  { icon: Bell, label: 'Notifikasi', href: '/dashboard/notifications', color: 'text-warning', bg: 'bg-warning/20' },
+];
+
+export default function StudentDashboardPage() {
   const { user } = useAuthStore();
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
+      {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-2xl p-8 relative overflow-hidden"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 p-8 text-white"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px]" />
-        <div className="relative">
-          <h1 className="text-3xl font-bold mb-2">
-            Selamat Datang, <span className="text-gradient">{user?.full_name || 'Siswa'}</span>
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative z-10">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            Selamat Datang, {user?.full_name || 'Siswa'}! 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-white/90 text-lg">
             Berikut ringkasan kegiatan kelas X-5 hari ini.
           </p>
+        </div>
+        <div className="absolute -right-10 -bottom-10 opacity-10">
+          <BookOpen className="h-64 w-64" />
         </div>
       </motion.div>
 
@@ -70,22 +85,52 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
           >
-            <Card className="hover:glow-primary transition-all duration-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-3xl font-bold mt-1">{stat.value}</p>
+            <Link href={stat.href}>
+              <Card className="hover:glow-primary transition-all duration-300 cursor-pointer group">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`h-12 w-12 rounded-xl ${stat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
                   </div>
-                  <div className={`h-12 w-12 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-3xl font-bold mb-1">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
           </motion.div>
         ))}
       </div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Aksi Cepat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {quickActions.map((action, i) => (
+                <Link key={i} href={action.href}>
+                  <Button
+                    variant="outline"
+                    className="w-full h-24 flex flex-col gap-2 hover:bg-white/5 hover:border-primary/50 transition-all"
+                  >
+                    <div className={`h-10 w-10 rounded-lg ${action.bg} flex items-center justify-center`}>
+                      <action.icon className={`h-5 w-5 ${action.color}`} />
+                    </div>
+                    <span className="text-sm">{action.label}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -93,15 +138,22 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.4 }}
           className="lg:col-span-2"
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                Jadwal Hari Ini
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Jadwal Hari Ini
+                </CardTitle>
+                <Link href="/dashboard/schedule">
+                  <Button variant="ghost" size="sm">
+                    Lihat Semua
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -134,32 +186,38 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.5 }}
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Pengumuman
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  Pengumuman
+                </CardTitle>
+                <Link href="/dashboard/announcements">
+                  <Button variant="ghost" size="sm">
+                    Semua
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {recentAnnouncements.map((item, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-xl bg-white/5 hover:bg-white/8 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-sm">{item.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{item.date}</p>
+                  <Link key={i} href={item.href}>
+                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/8 transition-colors cursor-pointer">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-sm">{item.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{item.date}</p>
+                        </div>
+                        {item.pinned && (
+                          <Badge variant="warning" className="text-[10px]">Pinned</Badge>
+                        )}
                       </div>
-                      {item.pinned && (
-                        <Badge variant="warning" className="text-[10px]">Pinned</Badge>
-                      )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </CardContent>
@@ -171,28 +229,34 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.6 }}
       >
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Tugas Mendatang
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Tugas Mendatang
+              </CardTitle>
+              <Link href="/dashboard/assignments">
+                <Button variant="ghost" size="sm">
+                  Lihat Semua
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
               {upcomingAssignments.map((item, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-xl bg-white/5 hover:bg-white/8 transition-colors cursor-pointer border border-white/5"
-                >
-                  <Badge variant="outline" className="mb-2">{item.subject}</Badge>
-                  <h3 className="font-medium mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Deadline: <span className="text-warning">{item.due}</span>
-                  </p>
-                </div>
+                <Link key={i} href={item.href}>
+                  <div className="p-4 rounded-xl bg-white/5 hover:bg-white/8 transition-colors cursor-pointer border border-white/5 hover:border-primary/30">
+                    <Badge variant="outline" className="mb-2">{item.subject}</Badge>
+                    <h3 className="font-medium mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Deadline: <span className="text-warning">{item.due}</span>
+                    </p>
+                  </div>
+                </Link>
               ))}
             </div>
           </CardContent>
